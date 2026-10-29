@@ -6,6 +6,8 @@ class Printer {
   final String specs;
   final int stock;
   final bool inStock;
+  final String brand;
+  final String model;
 
   Printer({
     required this.printerID,
@@ -14,6 +16,8 @@ class Printer {
     required this.specs,
     required this.stock,
     required this.inStock,
+    required this.brand,
+    required this.model,
   });
 
   factory Printer.fromMap(Map<String, dynamic> map) {
@@ -24,6 +28,8 @@ class Printer {
       specs: map['description'] as String,
       stock: (map['stock'] as num).toInt(),
       inStock: map['is_available'] as bool,
+      brand: map['brand'] as String,
+      model: map['model'] as String,
     );
   }
 }
