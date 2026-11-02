@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'screens/dashboard.dart';
 import 'screens/login_page.dart';
 
 Future<void> main() async {
