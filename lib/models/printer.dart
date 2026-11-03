@@ -1,4 +1,3 @@
-
 class Printer {
   final int printerID;
   final String category;
@@ -22,14 +21,14 @@ class Printer {
 
   factory Printer.fromMap(Map<String, dynamic> map) {
     return Printer(
-      printerID: (map['id'] as num).toInt(),
-      category: map['printer_type'] as String,
-      price: (map['price'] as num).toDouble(),
-      specs: map['description'] as String,
-      stock: (map['stock'] as num).toInt(),
-      inStock: map['is_available'] as bool,
-      brand: map['brand'] as String,
-      model: map['model'] as String,
+      printerID: (map['id'] as num?)?.toInt() ?? 0,
+      category: (map['printer_type'] as String?) ?? (map['category'] as String?) ?? '',
+      price: (map['price'] as num?)?.toDouble() ?? 0.0,
+      specs: (map['description'] as String?) ?? (map['specs'] as String?) ?? '',
+      stock: (map['stock'] as num?)?.toInt() ?? 0,
+      inStock: (map['is_available'] as bool?) ?? true,
+      brand: (map['brand'] as String?) ?? '',
+      model: (map['model'] as String?) ?? '',
     );
   }
 }
