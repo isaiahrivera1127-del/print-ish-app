@@ -4,6 +4,7 @@ import '../constants/colors.dart';
 import '../constants/app_spacing.dart';
 import '../models/printer.dart';
 import '../services/printer_service.dart';
+import 'printer_details.dart';
 import 'login_page.dart';
 
 class Dashboard extends StatelessWidget {
@@ -129,6 +130,16 @@ class Dashboard extends StatelessWidget {
                           trailing: Text(
                             '\$${printer.price.toStringAsFixed(2)}',
                           ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PrinterDetails(
+                                  printer: printer,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       );
                     },
