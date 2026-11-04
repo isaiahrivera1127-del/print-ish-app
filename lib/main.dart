@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/dashboard.dart';
@@ -23,6 +22,5 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       home: Dashboard(),
     );
-
   }
 }

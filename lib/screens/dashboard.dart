@@ -1,10 +1,11 @@
-
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constants/colors.dart';
 import '../constants/app_spacing.dart';
 import '../models/printer.dart';
 import '../services/printer_service.dart';
 import 'printer_details.dart';
+import 'login_page.dart';
 
 class Dashboard extends StatelessWidget {
   const Dashboard({super.key});
@@ -18,6 +19,24 @@ class Dashboard extends StatelessWidget {
         centerTitle: true,
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.textWhite,
+        actions: [
+          StreamBuilder<AuthState>(
+            stream: Supabase.instance.client.auth.onAuthStateChange,
+            builder: (context, snapshot) {
+              final user = Supabase.instance.client.auth.currentUser;
+              return IconButton(
+                icon: Icon(user != null ? Icons.person : Icons.login),
+                tooltip: user != null ? 'Profile & Account' : 'Sign In',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginPage()),
+                  );
+                },
+              );
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(AppSpacing.medium),
@@ -46,7 +65,7 @@ class Dashboard extends StatelessWidget {
                 const SizedBox(width: AppSpacing.small),
 
                 IconButton(
-                  onPressed: (){},
+                  onPressed: () {},
                   icon: const Icon(Icons.filter_list),
                   color: AppColors.tertiary,
                   iconSize: 28,
@@ -54,7 +73,7 @@ class Dashboard extends StatelessWidget {
                 ),
 
                 IconButton(
-                  onPressed: (){},
+                  onPressed: () {},
                   icon: const Icon(Icons.shopping_cart),
                   color: AppColors.secondary,
                   iconSize: 28,
@@ -62,7 +81,6 @@ class Dashboard extends StatelessWidget {
                 ),
               ],
             ),
-
 
             const SizedBox(height: AppSpacing.medium),
 
@@ -89,7 +107,10 @@ class Dashboard extends StatelessWidget {
 
                   if (printers.isEmpty) {
                     return const Center(
-                      child: Text('No printers available'),
+                      child: Text(
+                        'No printers available',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     );
                   }
 
