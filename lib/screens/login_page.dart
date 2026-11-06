@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dashboard.dart';
+import 'a_dashboard.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -19,6 +20,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _isSignUpMode = false;
+  bool _isAdminMode = false;
 
   @override
   void dispose() {
@@ -27,8 +29,50 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _navigateToDashboard() {
-    if (Navigator.canPop(context)) {
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red.shade700 : null,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  bool _navigateToDashboard() {
+    final user = Supabase.instance.client.auth.currentUser;
+    final isRealAdmin = user?.userMetadata?['role'] == 'admin' ||
+        user?.appMetadata['role'] == 'admin';
+
+    // 1. If non-admin attempts Admin Portal Sign In -> BLOCK
+    if (_isAdminMode && !isRealAdmin) {
+      _showSnackBar(
+        'Access Denied: Your account does not have admin privileges.',
+        isError: true,
+      );
+      Supabase.instance.client.auth.signOut();
+      return false;
+    }
+
+    // 2. If admin attempts Customer Sign In -> BLOCK
+    if (!_isAdminMode && isRealAdmin) {
+      _showSnackBar(
+        'Admin accounts must sign in using the Admin Portal.',
+        isError: true,
+      );
+      Supabase.instance.client.auth.signOut();
+      return false;
+    }
+
+    if (isRealAdmin) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const AdminDashboard()),
+        (route) => false,
+      );
+    } else if (Navigator.canPop(context)) {
       Navigator.pop(context);
     } else {
       Navigator.pushAndRemoveUntil(
@@ -37,6 +81,7 @@ class _LoginPageState extends State<LoginPage> {
         (route) => false,
       );
     }
+    return true;
   }
 
   // --- Sign Out Method ---
@@ -47,17 +92,9 @@ class _LoginPageState extends State<LoginPage> {
       if (kIsWeb) {
         await GoogleSignIn.instance.signOut();
       }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Logged out successfully.')),
-        );
-      }
+      _showSnackBar('Logged out successfully.');
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error logging out: $e')),
-        );
-      }
+      _showSnackBar('Error logging out: $e', isError: true);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -75,55 +112,40 @@ class _LoginPageState extends State<LoginPage> {
       final email = _emailController.text.trim();
       final password = _passwordController.text.trim();
 
-      if (_isSignUpMode) {
-        // Sign Up
+      // Admin accounts cannot be self-signed up from the app
+      if (_isSignUpMode && !_isAdminMode) {
+        // Customer Sign Up
         final response = await Supabase.instance.client.auth.signUp(
           email: email,
           password: password,
         );
 
-        if (mounted) {
-          if (response.user != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Account created successfully!'),
-              ),
-            );
-            _navigateToDashboard();
-          }
+        if (mounted && response.user != null) {
+          _showSnackBar('Account created successfully!');
+          _navigateToDashboard();
         }
       } else {
-        // Sign In
+        // Sign In (Enforced for Admin Portal and Customer Sign In)
         await Supabase.instance.client.auth.signInWithPassword(
           email: email,
           password: password,
         );
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Welcome back! Signed in successfully.')),
-          );
-          _navigateToDashboard();
+          final isAuthorized = _navigateToDashboard();
+          if (isAuthorized) {
+            _showSnackBar(
+              _isAdminMode
+                  ? 'Signed in as Admin successfully!'
+                  : 'Welcome back! Signed in successfully.',
+            );
+          }
         }
       }
     } on AuthException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.message),
-            backgroundColor: Colors.red.shade700,
-          ),
-        );
-      }
+      _showSnackBar(e.message, isError: true);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('An unexpected error occurred: $e'),
-            backgroundColor: Colors.red.shade700,
-          ),
-        );
-      }
+      _showSnackBar('An unexpected error occurred: $e', isError: true);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -164,21 +186,12 @@ class _LoginPageState extends State<LoginPage> {
         );
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Signed in with Google successfully!')),
-          );
+          _showSnackBar('Signed in with Google successfully!');
           _navigateToDashboard();
         }
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Google Sign-In Error: $e'),
-            backgroundColor: Colors.red.shade700,
-          ),
-        );
-      }
+      _showSnackBar('Google Sign-In Error: $e', isError: true);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -193,7 +206,11 @@ class _LoginPageState extends State<LoginPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(currentUser != null ? 'Account' : 'Sign In'),
+        title: Text(
+          currentUser != null
+              ? 'Account'
+              : (_isAdminMode ? 'Admin Portal' : 'Sign In'),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: _navigateToDashboard,
@@ -285,32 +302,46 @@ class _LoginPageState extends State<LoginPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // App Branding Header
-          Image.asset(
-            'lib/assets/images/printer-icon.png',
-            height: 80,
-            width: 80,
-            colorBlendMode: BlendMode.multiply,
-            errorBuilder: (context, error, stackTrace) => Icon(
-              Icons.print_rounded,
-              size: 80,
-              color: theme.colorScheme.primary,
+          // App Branding Header / Admin Badge Header
+          if (_isAdminMode)
+            const Column(
+              children: [
+                Icon(
+                  Icons.admin_panel_settings,
+                  size: 72,
+                  color: Colors.deepOrange,
+                ),
+                SizedBox(height: 8),
+              ],
+            )
+          else
+            Image.asset(
+              'lib/assets/images/printer-icon.png',
+              height: 80,
+              width: 80,
+              colorBlendMode: BlendMode.multiply,
+              errorBuilder: (context, error, stackTrace) => Icon(
+                Icons.print_rounded,
+                size: 80,
+                color: theme.colorScheme.primary,
+              ),
             ),
-          ),
           const SizedBox(height: 12),
           Text(
-            'Print-ish',
+            _isAdminMode ? 'Admin Portal' : 'Print-ish',
             textAlign: TextAlign.center,
             style: theme.textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
-              color: theme.colorScheme.primary,
+              color: _isAdminMode ? Colors.deepOrange : theme.colorScheme.primary,
             ),
           ),
           const SizedBox(height: 4),
           Text(
-            _isSignUpMode
-                ? 'Create an account to get started'
-                : 'Welcome back! Sign in to continue',
+            _isAdminMode
+                ? 'Sign in with administrator credentials'
+                : (_isSignUpMode
+                    ? 'Create an account to get started'
+                    : 'Welcome back! Sign in to continue'),
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: Colors.grey.shade600,
@@ -323,8 +354,8 @@ class _LoginPageState extends State<LoginPage> {
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
             decoration: InputDecoration(
-              labelText: 'Email Address',
-              hintText: 'name@example.com',
+              labelText: _isAdminMode ? 'Admin Email' : 'Email Address',
+              hintText: 'admin@example.com',
               prefixIcon: const Icon(Icons.email_outlined),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -386,7 +417,8 @@ class _LoginPageState extends State<LoginPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              backgroundColor: theme.colorScheme.primary,
+              backgroundColor:
+                  _isAdminMode ? Colors.deepOrange : theme.colorScheme.primary,
               foregroundColor: Colors.white,
             ),
             child: _isLoading
@@ -399,7 +431,9 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   )
                 : Text(
-                    _isSignUpMode ? 'Create Account' : 'Sign In',
+                    _isAdminMode
+                        ? 'Sign In as Admin'
+                        : (_isSignUpMode ? 'Create Account' : 'Sign In'),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -408,76 +442,101 @@ class _LoginPageState extends State<LoginPage> {
           ),
           const SizedBox(height: 24),
 
-          // "OR" Divider
-          Row(
-            children: [
-              Expanded(child: Divider(color: Colors.grey.shade300)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  'OR',
-                  style: TextStyle(color: Colors.grey.shade500),
-                ),
-              ),
-              Expanded(child: Divider(color: Colors.grey.shade300)),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // Google Sign-In Button
-          OutlinedButton.icon(
-            onPressed: _isLoading ? null : _signInWithGoogle,
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              side: BorderSide(color: Colors.grey.shade300),
-            ),
-            icon: Image.asset(
-              'lib/assets/images/google_logo.png',
-              height: 30,
-              width: 30,
-              colorBlendMode: BlendMode.multiply,
-              errorBuilder: (context, error, stackTrace) =>
-                  const Icon(Icons.account_circle, size: 22),
-            ),
-            label: Text(
-              'Continue with Google',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade800,
-              ),
-            ),
-          ),
-          const SizedBox(height: 28),
-
-          // Toggle Sign In vs Sign Up Mode
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                _isSignUpMode
-                    ? 'Already have an account? '
-                    : "Don't have an account? ",
-                style: TextStyle(color: Colors.grey.shade700),
-              ),
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _isSignUpMode = !_isSignUpMode;
-                  });
-                },
-                child: Text(
-                  _isSignUpMode ? 'Sign In' : 'Sign Up',
-                  style: TextStyle(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.bold,
+          if (!_isAdminMode) ...[
+            // "OR" Divider
+            Row(
+              children: [
+                Expanded(child: Divider(color: Colors.grey.shade300)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    'OR',
+                    style: TextStyle(color: Colors.grey.shade500),
                   ),
                 ),
+                Expanded(child: Divider(color: Colors.grey.shade300)),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Google Sign-In Button
+            OutlinedButton.icon(
+              onPressed: _isLoading ? null : _signInWithGoogle,
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                side: BorderSide(color: Colors.grey.shade300),
               ),
-            ],
+              icon: Image.asset(
+                'lib/assets/images/google_logo.png',
+                height: 30,
+                width: 30,
+                colorBlendMode: BlendMode.multiply,
+                errorBuilder: (context, error, stackTrace) =>
+                    const Icon(Icons.account_circle, size: 22),
+              ),
+              label: Text(
+                'Continue with Google',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Toggle Sign In vs Sign Up Mode
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  _isSignUpMode
+                      ? 'Already have an account? '
+                      : "Don't have an account? ",
+                  style: TextStyle(color: Colors.grey.shade700),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isSignUpMode = !_isSignUpMode;
+                    });
+                  },
+                  child: Text(
+                    _isSignUpMode ? 'Sign In' : 'Sign Up',
+                    style: TextStyle(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 8),
+
+          // Admin Access / Portal Toggle Button
+          TextButton.icon(
+            onPressed: () {
+              setState(() {
+                _isAdminMode = !_isAdminMode;
+                _isSignUpMode = false; // Always reset to Sign In mode for Admin Portal
+              });
+            },
+            icon: const Icon(Icons.admin_panel_settings_outlined, size: 20),
+            label: Text(
+              _isAdminMode ? 'Switch to Customer Sign In' : 'Admin Portal Sign In',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            style: TextButton.styleFrom(
+              foregroundColor:
+                  _isAdminMode ? Colors.deepPurple : Colors.deepOrange,
+            ),
           ),
         ],
       ),
