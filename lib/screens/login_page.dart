@@ -41,46 +41,65 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  bool _navigateToDashboard() {
+  bool _navigateToDashboard({bool isSubmittingLogin = false}) {
     final user = Supabase.instance.client.auth.currentUser;
     final isRealAdmin = user?.userMetadata?['role'] == 'admin' ||
         user?.appMetadata['role'] == 'admin';
 
-    // 1. If non-admin attempts Admin Portal Sign In -> BLOCK
-    if (_isAdminMode && !isRealAdmin) {
-      _showSnackBar(
-        'Access Denied: Your account does not have admin privileges.',
-        isError: true,
-      );
-      Supabase.instance.client.auth.signOut();
-      return false;
-    }
+    // Portal checks ONLY run when submitting a new login form
+    if (isSubmittingLogin) {
+      if (_isAdminMode && !isRealAdmin) {
+        _showSnackBar(
+          'Access Denied: Your account does not have admin privileges.',
+          isError: true,
+        );
+        Supabase.instance.client.auth.signOut();
+        return false;
+      }
 
-    // 2. If admin attempts Customer Sign In -> BLOCK
-    if (!_isAdminMode && isRealAdmin) {
-      _showSnackBar(
-        'Admin accounts must sign in using the Admin Portal.',
-        isError: true,
-      );
-      Supabase.instance.client.auth.signOut();
-      return false;
-    }
+      if (!_isAdminMode && isRealAdmin) {
+        _showSnackBar(
+          'Admin accounts must sign in using the Admin Portal.',
+          isError: true,
+        );
+        Supabase.instance.client.auth.signOut();
+        return false;
+      }
 
-    if (isRealAdmin) {
+      // On successful login submission, reset stack directly to the target destination
+      final destination = isRealAdmin ? const AdminDashboard() : const Dashboard();
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const AdminDashboard()),
+        MaterialPageRoute(builder: (_) => destination),
         (route) => false,
       );
-    } else if (Navigator.canPop(context)) {
-      Navigator.pop(context);
-    } else {
+      return true;
+    }
+
+    // 1. If user is logged out (user == null) -> Reset to public Dashboard
+    if (user == null) {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const Dashboard()),
         (route) => false,
       );
+      return true;
     }
+
+    // 2. If viewing profile/account page while logged in -> Simply pop back
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+      return true;
+    }
+
+    // 3. Otherwise navigate to appropriate dashboard
+    final destination = isRealAdmin ? const AdminDashboard() : const Dashboard();
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => destination),
+      (route) => false,
+    );
     return true;
   }
 
@@ -93,6 +112,7 @@ class _LoginPageState extends State<LoginPage> {
         await GoogleSignIn.instance.signOut();
       }
       _showSnackBar('Logged out successfully.');
+      _navigateToDashboard();
     } catch (e) {
       _showSnackBar('Error logging out: $e', isError: true);
     } finally {
@@ -122,7 +142,7 @@ class _LoginPageState extends State<LoginPage> {
 
         if (mounted && response.user != null) {
           _showSnackBar('Account created successfully!');
-          _navigateToDashboard();
+          _navigateToDashboard(isSubmittingLogin: true);
         }
       } else {
         // Sign In (Enforced for Admin Portal and Customer Sign In)
@@ -132,7 +152,7 @@ class _LoginPageState extends State<LoginPage> {
         );
 
         if (mounted) {
-          final isAuthorized = _navigateToDashboard();
+          final isAuthorized = _navigateToDashboard(isSubmittingLogin: true);
           if (isAuthorized) {
             _showSnackBar(
               _isAdminMode
@@ -231,18 +251,23 @@ class _LoginPageState extends State<LoginPage> {
 
   // --- View Shown When User Is Already Logged In ---
   Widget _buildLoggedInView(ThemeData theme, User user) {
+    final isRealAdmin = user.userMetadata?['role'] == 'admin' ||
+        user.appMetadata['role'] == 'admin';
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Icon(
-          Icons.account_circle_rounded,
+          isRealAdmin
+              ? Icons.admin_panel_settings_rounded
+              : Icons.account_circle_rounded,
           size: 96,
-          color: theme.colorScheme.primary,
+          color: isRealAdmin ? Colors.deepOrange : theme.colorScheme.primary,
         ),
         const SizedBox(height: 16),
         Text(
-          'Signed In As',
+          isRealAdmin ? 'Signed In As Admin' : 'Signed In As',
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: Colors.grey.shade600,
@@ -264,13 +289,14 @@ class _LoginPageState extends State<LoginPage> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            backgroundColor: theme.colorScheme.primary,
+            backgroundColor:
+                isRealAdmin ? Colors.deepOrange : theme.colorScheme.primary,
             foregroundColor: Colors.white,
           ),
-          icon: const Icon(Icons.storefront),
-          label: const Text(
-            'Continue to Store',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          icon: Icon(isRealAdmin ? Icons.dashboard_rounded : Icons.storefront),
+          label: Text(
+            isRealAdmin ? 'Continue to Admin Dashboard' : 'Continue to Store',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ),
         const SizedBox(height: 16),
@@ -315,16 +341,10 @@ class _LoginPageState extends State<LoginPage> {
               ],
             )
           else
-            Image.asset(
-              'lib/assets/images/printer-icon.png',
-              height: 80,
-              width: 80,
-              colorBlendMode: BlendMode.multiply,
-              errorBuilder: (context, error, stackTrace) => Icon(
-                Icons.print_rounded,
-                size: 80,
-                color: theme.colorScheme.primary,
-              ),
+            const Icon(
+              Icons.print_rounded,
+              size: 80,
+              color: Colors.deepPurple,
             ),
           const SizedBox(height: 12),
           Text(
@@ -473,7 +493,6 @@ class _LoginPageState extends State<LoginPage> {
                 'lib/assets/images/google_logo.png',
                 height: 30,
                 width: 30,
-                colorBlendMode: BlendMode.multiply,
                 errorBuilder: (context, error, stackTrace) =>
                     const Icon(Icons.account_circle, size: 22),
               ),
