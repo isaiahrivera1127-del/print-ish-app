@@ -6,13 +6,20 @@ class ShopCart {
   final List<CartItem> currentOrder = [];
 
   void addItem(Printer printer, int quantity) {
-    currentOrder.add(
-      CartItem(
-        printer: printer,
-        quantity: quantity,
-      ),
-    );
+  for (final item in currentOrder) {
+    if (item.printer.printerID == printer.printerID) {
+      item.updateQuantity(item.quantity + quantity);
+      return;
+    }
   }
+
+  currentOrder.add(
+    CartItem(
+      printer: printer,
+      quantity: quantity,
+    ),
+  );
+}
 
   void removeItem(int printerID) {
     currentOrder.removeWhere(

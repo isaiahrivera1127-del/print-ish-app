@@ -4,13 +4,16 @@ import '../models/printer.dart';
 import '../constants/colors.dart';
 import '../constants/app_spacing.dart';
 import '../widgets/back_button.dart';
+import '../models/cart.dart';
 
 class PrinterDetails extends StatelessWidget {
   final Printer printer;
+  final ShopCart cart;
 
   const PrinterDetails({
     super.key,
     required this.printer,
+    required this.cart,
   });
 
   @override
@@ -107,8 +110,15 @@ class PrinterDetails extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  // Cart functionality will be added later.
-                },
+                  cart.addItem(printer, 1);
+
+            ScaffoldMessenger.of(context).showSnackBar(
+               const SnackBar(
+                 content: Text('Added to cart'),
+                     ),
+                    );
+                   },
+                
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.tertiary,
                   foregroundColor: AppColors.textBlack,

@@ -6,6 +6,8 @@ import '../models/printer.dart';
 import '../services/printer_service.dart';
 import 'printer_details.dart';
 import 'login_page.dart';
+import '../models/cart.dart';
+import 'shopping_cart.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -18,7 +20,7 @@ class _DashboardState extends State<Dashboard> {
   String searchQuery = '';
   Set<String> selectedBrands = {};
   Set<String> selectedTypes = {};
-
+  final ShopCart cart = ShopCart();
   RangeValues? selectedPriceRange;
 
   late Future<List<Printer>> printersFuture;
@@ -328,7 +330,16 @@ class _DashboardState extends State<Dashboard> {
                 ),
 
                 IconButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                     context,
+                       MaterialPageRoute(
+                         builder: (_) => ShoppingCartPage(
+                       cart: cart,
+                      ),
+                     ),
+                    );
+                   },
                   icon: const Icon(Icons.shopping_cart),
                   color: AppColors.secondary,
                   iconSize: 28,
@@ -414,6 +425,7 @@ class _DashboardState extends State<Dashboard> {
                               MaterialPageRoute(
                                 builder: (context) => PrinterDetails(
                                   printer: printer,
+                                  cart: cart,
                                 ),
                               ),
                             );
