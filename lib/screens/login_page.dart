@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:print_ish_app/constants/colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dashboard.dart';
 import 'a_dashboard.dart';
@@ -150,6 +151,29 @@ class _LoginPageState extends State<LoginPage> {
           email: email,
           password: password,
         );
+
+        final user = Supabase.instance.client.auth.currentUser;
+        if (user != null) {
+          // Verify if user profile exists in public.profiles (unless admin)
+          try {
+            final profile = await Supabase.instance.client
+                .from('profiles')
+                .select()
+                .eq('email', user.email!)
+                .maybeSingle();
+
+            if (profile == null && user.userMetadata?['role'] != 'admin') {
+              await Supabase.instance.client.auth.signOut();
+              _showSnackBar(
+                'This account has been deleted by an administrator.',
+                isError: true,
+              );
+              return;
+            }
+          } catch (_) {
+            // Ignore if profiles table structure varies
+          }
+        }
 
         if (mounted) {
           final isAuthorized = _navigateToDashboard(isSubmittingLogin: true);
@@ -335,7 +359,7 @@ class _LoginPageState extends State<LoginPage> {
                 Icon(
                   Icons.admin_panel_settings,
                   size: 72,
-                  color: Colors.deepOrange,
+                  color: AppColors.admin,
                 ),
                 SizedBox(height: 8),
               ],
@@ -344,7 +368,7 @@ class _LoginPageState extends State<LoginPage> {
             const Icon(
               Icons.print_rounded,
               size: 80,
-              color: Colors.deepPurple,
+              color: AppColors.primary,
             ),
           const SizedBox(height: 12),
           Text(
@@ -352,7 +376,7 @@ class _LoginPageState extends State<LoginPage> {
             textAlign: TextAlign.center,
             style: theme.textTheme.headlineMedium?.copyWith(
               fontWeight: FontWeight.bold,
-              color: _isAdminMode ? Colors.deepOrange : theme.colorScheme.primary,
+              color: _isAdminMode ? AppColors.admin : AppColors.primary,
             ),
           ),
           const SizedBox(height: 4),
