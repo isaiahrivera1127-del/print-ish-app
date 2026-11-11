@@ -1,10 +1,11 @@
-
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import '../models/printer.dart';
 import '../constants/colors.dart';
 import '../constants/app_spacing.dart';
 import '../widgets/back_button.dart';
 import '../models/cart.dart';
+import 'login_page.dart';
 
 class PrinterDetails extends StatelessWidget {
   final Printer printer;
@@ -110,14 +111,26 @@ class PrinterDetails extends StatelessWidget {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  cart.addItem(printer, 1);
-
-            ScaffoldMessenger.of(context).showSnackBar(
-               const SnackBar(
-                 content: Text('Added to cart'),
-                     ),
+                  final user = Supabase.instance.client.auth.currentUser;
+                  if (user != null) {
+                    cart.addItem(printer, 1);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Added to cart'),
+                      ),
                     );
-                   },
+                  } else {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoginPage()),
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Login before adding to cart'),
+                      ),
+                    );
+                  }
+                  },
                 
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.tertiary,
