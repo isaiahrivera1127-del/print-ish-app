@@ -7,6 +7,9 @@ class Order {
   final DateTime orderDate;
   final List<CartItem> items;
 
+  // Getter for email alias
+  String get email => customerEmail;
+
   Order({
     required this.orderNumber,
     required this.customerEmail,
@@ -17,12 +20,24 @@ class Order {
 
   factory Order.fromMap(Map<String, dynamic> map) {
     return Order(
-      orderNumber: map['order_number'] as String? ?? '',
-      customerEmail: map['customer_email'] as String? ?? '',
-      totalPrice: (map['total_price'] as num?)?.toDouble() ?? 0.0,
+      orderNumber: map['order_number'] as String? ??
+          map['order_id'] as String? ??
+          map['id']?.toString() ??
+          '',
+      customerEmail: map['customer_email'] as String? ??
+          map['email'] as String? ??
+          map['user_email'] as String? ??
+          '',
+      totalPrice: (map['total_price'] as num?)?.toDouble() ??
+          (map['total'] as num?)?.toDouble() ??
+          (map['price'] as num?)?.toDouble() ??
+          (map['amount'] as num?)?.toDouble() ??
+          0.0,
       orderDate: map['created_at'] != null
           ? DateTime.parse(map['created_at'] as String)
-          : DateTime.now(),
+          : (map['date'] != null
+              ? DateTime.parse(map['date'] as String)
+              : DateTime.now()),
     );
   }
 
