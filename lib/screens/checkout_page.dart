@@ -22,6 +22,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final _stateController = TextEditingController();
   final _zipController = TextEditingController();
 
+  final _formKey = GlobalKey<FormState>();
   String paymentMethod = 'Credit Card';
 
   @override
@@ -36,21 +37,12 @@ void dispose() {
 }
 
 Future<void> placeOrder() async {
-    final supabase = Supabase.instance.client;
-
-if (_nameController.text.isEmpty ||
-    _emailController.text.isEmpty ||
-    _addressController.text.isEmpty) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text('Please complete all required fields'),
-    ),
-  );
+  if (!_formKey.currentState!.validate()) {
   return;
 }
+    final supabase = Supabase.instance.client;
 
-
-    final order = await supabase
+    try {final order = await supabase
         .from('orders')
         .insert({
           'order_number': 'ORD-${DateTime.now().millisecondsSinceEpoch.toString()}',
@@ -97,9 +89,16 @@ if (_nameController.text.isEmpty ||
   );
     }
   } 
-
-
-
+catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error placing order: $e'),
+        ),
+      );
+    }
+  }
+}
 
 
   @override
@@ -110,49 +109,144 @@ if (_nameController.text.isEmpty ||
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Full Name',
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+            TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+              labelText: 'Full Name',
+              border: OutlineInputBorder(),
               ),
-            ),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                  return 'Name is required';
+                    }
 
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: 'Email',
-              ),
-            ),
+                  if (!RegExp(r'^[a-zA-Z ]+$').hasMatch(value.trim())) {
+                    return 'Name can only contain letters';
+                    }
 
-            TextField(
-              controller: _addressController,
-              decoration: const InputDecoration(
-                labelText: 'Street Address',
-              ),
-            ),
+                        return null;
+                    },
+                ),
 
-            TextField(
+const SizedBox(height: 12),
+
+            TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(),
+                            ),
+                        validator: (value) {
+                        if (value == null || value.isEmpty) {
+                      return 'Email is required';
+                        }
+
+                              final emailRegex = RegExp(
+                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                              );
+
+                          if (!emailRegex.hasMatch(value)) {
+                            return 'Enter a valid email';
+                                      }
+
+                              return null;
+                                  },
+                                ),
+
+const SizedBox(height: 12),
+
+            TextFormField(
+                controller: _addressController,
+                decoration: const InputDecoration(
+                    labelText: 'Shipping Address',
+                    border: OutlineInputBorder(),
+                              ),
+                        validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Address is required';
+                              }
+
+                          bool hasLetter = RegExp(r'[a-zA-Z]').hasMatch(value);
+                          bool hasNumber = RegExp(r'[0-9]').hasMatch(value);
+
+                        if (!hasLetter || !hasNumber) {
+                        return 'Address must contain letters and numbers';
+                             }        
+
+                       return null;
+                        },
+                        ),
+
+const SizedBox(height: 12),
+
+           TextFormField(
               controller: _cityController,
               decoration: const InputDecoration(
                 labelText: 'City',
-              ),
-            ),
+                border: OutlineInputBorder(),
+                ),  // City
+                    validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                  return 'City is required';
+                           }
 
-            TextField(
+                  if (!RegExp(r'^[a-zA-Z ]+$').hasMatch(value.trim())) {
+                  return 'City can only contain letters';
+                        }
+
+                  return null;
+                  },
+                      ),
+
+const SizedBox(height: 12),
+
+           TextFormField(
               controller: _stateController,
               decoration: const InputDecoration(
                 labelText: 'State',
-              ),
-            ),
+                border: OutlineInputBorder(),
+                        ),
+                // State
+                  validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                      return 'State is required';
+                      }
 
-            TextField(
-              controller: _zipController,
-              decoration: const InputDecoration(
-                labelText: 'ZIP Code',
-              ),
-            ),
+                  if (!RegExp(r'^[a-zA-Z ]+$').hasMatch(value.trim())) {
+                  return 'State can only contain letters';
+                      }
+
+                            return null;
+                              },
+                          ),
+
+const SizedBox(height: 12),
+
+           TextFormField(
+                  controller: _zipController,
+                    keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'ZIP Code',
+                        border: OutlineInputBorder(),
+                          ),
+                         validator: (value) {
+                       if (value == null || value.isEmpty) {
+                       return 'ZIP Code is required';
+                           }
+
+                      if (!RegExp(r'^\d{5}$').hasMatch(value)) {
+                          return 'Enter a valid 5-digit ZIP Code';
+                              }
+
+                          return null;
+                                },
+                                ),
+
 
             const SizedBox(height: 20),
 
@@ -191,12 +285,15 @@ if (_nameController.text.isEmpty ||
             const SizedBox(height: 20),
 
             ElevatedButton(
-              onPressed: placeOrder,
-              child: const Text('Place Order'),
+              onPressed: () {
+    placeOrder();
+  },
+  child: const Text('Place Order'),
             ),
           ],
         ),
       ),
+      ),
     );
-  }
+}
 }
