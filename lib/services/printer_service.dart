@@ -33,10 +33,15 @@ class PrinterService {
   }
 
   Future<void> deletePrinter(int printerID) async {
-    await supabase
+    final deletedRows = await supabase
         .from('printers')
         .delete()
-        .eq('id', printerID);
+        .eq('id', printerID)
+        .select('id');
+
+    if (deletedRows.isEmpty) {
+      throw Exception('No printer was deleted.');
+    }
   }
 
   }
