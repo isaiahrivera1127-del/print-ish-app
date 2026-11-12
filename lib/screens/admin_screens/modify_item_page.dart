@@ -4,6 +4,7 @@ import '../../constants/colors.dart';
 import '../../constants/app_spacing.dart';
 import '../../models/printer.dart';
 import '../../services/printer_service.dart';
+import 'add_printer_page.dart';
 
 class ModifyItemPage extends StatefulWidget {
   const ModifyItemPage({super.key});
@@ -21,6 +22,85 @@ class _ModifyItemPageState extends State<ModifyItemPage> {
     printersFuture = PrinterService().getPrinters();
   }
 
+  Future<void> _deletePrinter(Printer printer) async {
+    // First confirmation
+    final firstConfirmation = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete Printer?'),
+          content: Text(
+            'Are you sure you want to delete '
+                '${printer.brand} ${printer.model}?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Continue'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (firstConfirmation != true || !mounted) return;
+
+    // Second confirmation
+    final secondConfirmation = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Are You Absolutely Sure?'),
+          content: const Text(
+            'This action cannot be undone. '
+                'The printer will be permanently deleted.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete Permanently'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (secondConfirmation != true || !mounted) return;
+
+    // Perform deletion
+    try {
+      await PrinterService().deletePrinter(printer.printerID);
+
+      if (!mounted) return;
+
+      setState(() {
+        printersFuture = PrinterService().getPrinters();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Printer deleted successfully!'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to delete printer. Please try again.'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -32,8 +112,19 @@ class _ModifyItemPageState extends State<ModifyItemPage> {
         foregroundColor: AppColors.textWhite,
         actions: [
           IconButton(
-            onPressed: () {
-              // Add printer functionality will go here.
+            onPressed: () async {
+              final result = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AddPrinterPage(),
+                ),
+              );
+
+              if (result == true && mounted) {
+                setState(() {
+                  printersFuture = PrinterService().getPrinters();
+                });
+              }
             },
             icon: const Icon(Icons.add),
             tooltip: 'Add Printer',
@@ -89,7 +180,7 @@ class _ModifyItemPageState extends State<ModifyItemPage> {
                         ),
                         IconButton(
                           onPressed: () {
-                            // Delete functionality will go here.
+                            _deletePrinter(printer);
                           },
                           icon: const Icon(Icons.delete),
                           color: Colors.red,
