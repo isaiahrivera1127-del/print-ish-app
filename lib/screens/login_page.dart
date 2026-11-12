@@ -5,7 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:print_ish_app/constants/colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dashboard.dart';
-import 'a_dashboard.dart';
+import 'admin_screens/a_dashboard.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

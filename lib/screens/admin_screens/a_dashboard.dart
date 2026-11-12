@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../constants/app_spacing.dart';
-import '../constants/colors.dart';
+import '../../constants/app_spacing.dart';
+import '../../constants/colors.dart';
 import 'delete_user_page.dart';
-import 'login_page.dart';
+import '../login_page.dart';
 import 'lookup_order_page.dart';
 import 'modify_item_page.dart';
 
