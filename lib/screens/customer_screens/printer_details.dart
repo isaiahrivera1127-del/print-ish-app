@@ -1,11 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
-import '../models/printer.dart';
-import '../constants/colors.dart';
-import '../constants/app_spacing.dart';
-import '../widgets/back_button.dart';
-import '../models/cart.dart';
-import 'login_page.dart';
+import '../../models/printer.dart';
+import '../../constants/colors.dart';
+import '../../constants/app_spacing.dart';
+import '../../widgets/back_button.dart';
+import '../../models/cart.dart';
+import '../login_page.dart';
 
 class PrinterDetails extends StatelessWidget {
   final Printer printer;

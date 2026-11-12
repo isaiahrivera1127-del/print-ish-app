@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/cart.dart';
+import '../../models/cart.dart';
 
 class CheckoutPage extends StatefulWidget {
   final ShopCart cart;

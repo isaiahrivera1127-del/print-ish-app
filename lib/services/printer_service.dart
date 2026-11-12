@@ -11,5 +11,33 @@ class PrinterService {
 
       return (data as List).map((row) => Printer.fromMap(row)).toList();
     }
+
+  Future<void> addPrinter({
+    required String brand,
+    required String model,
+    required String printerType,
+    required double price,
+    required String description,
+    required bool isAvailable,
+    required int stock,
+  }) async {
+    await supabase.from('printers').insert({
+      'brand': brand,
+      'model': model,
+      'printer_type': printerType,
+      'price': price,
+      'description': description,
+      'is_available': isAvailable,
+      'stock': stock,
+    });
+  }
+
+  Future<void> deletePrinter(int printerID) async {
+    await supabase
+        .from('printers')
+        .delete()
+        .eq('id', printerID);
+  }
+
   }
 

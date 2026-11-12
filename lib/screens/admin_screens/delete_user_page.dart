@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../constants/app_spacing.dart';
-import '../models/order.dart';
+import '../../constants/app_spacing.dart';
+import '../../models/customer.dart';
 
-class LookupOrderPage extends StatefulWidget {
-  const LookupOrderPage({super.key});
+class DeleteUserPage extends StatefulWidget {
+  const DeleteUserPage({super.key});
 
   @override
-  State<LookupOrderPage> createState() => _LookupOrderPageState();
+  State<DeleteUserPage> createState() => _DeleteUserPageState();
 }
 
-class _LookupOrderPageState extends State<LookupOrderPage> {
+class _DeleteUserPageState extends State<DeleteUserPage> {
   final TextEditingController _searchController = TextEditingController();
   final SupabaseClient _supabase = Supabase.instance.client;
 
   String _searchQuery = '';
   bool _isLoading = false;
-  List<Order> _orders = [];
+  List<Customer> _users = [];
 
   @override
   void initState() {
     super.initState();
-    _fetchOrders();
+    _fetchRegisteredUsers();
   }
 
   @override
@@ -30,21 +30,39 @@ class _LookupOrderPageState extends State<LookupOrderPage> {
     super.dispose();
   }
 
-  // --- Fetch Orders from Supabase ---
-  Future<void> _fetchOrders() async {
+  // Fetch registered users from Supabase
+  Future<void> _fetchRegisteredUsers() async {
     setState(() => _isLoading = true);
 
     try {
-      final response = await _supabase.from('orders').select();
-      final List<dynamic> data = response as List<dynamic>;
+      List<dynamic> data = [];
+
+      // Try fetching from 'profiles', 'customers', or 'users' tables
+      try {
+        final res = await _supabase.from('profiles').select();
+        data = res as List<dynamic>;
+      } catch (_) {
+        try {
+          final res = await _supabase.from('customers').select();
+          data = res as List<dynamic>;
+        } catch (_) {
+          try {
+            final res = await _supabase.from('users').select();
+            data = res as List<dynamic>;
+          } catch (e) {
+            debugPrint('Error querying user tables: $e');
+          }
+        }
+      }
 
       setState(() {
-        _orders = data
-            .map((item) => Order.fromMap(item as Map<String, dynamic>))
+        _users = data
+            .map((item) => Customer.fromMap(item as Map<String, dynamic>))
+            .where((u) => u.email.isNotEmpty)
             .toList();
       });
     } catch (e) {
-      debugPrint('Error fetching orders from Supabase: $e');
+      debugPrint('Error fetching users from Supabase: $e');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -52,55 +70,80 @@ class _LookupOrderPageState extends State<LookupOrderPage> {
     }
   }
 
-  // --- Show Detailed Order Info ---
-  void _showOrderDetails(Order order) {
+  // --- Delete User Account ---
+  Future<void> _deleteUser(Customer user) async {
+    setState(() => _isLoading = true);
+
+    try {
+      // Attempt delete by ID or Email
+      if (user.id != null && user.id!.isNotEmpty) {
+        await _supabase.from('profiles').delete().eq('id', user.id!);
+      } else {
+        await _supabase.from('profiles').delete().eq('email', user.email);
+      }
+
+      setState(() {
+        _users.removeWhere((u) => u.email == user.email);
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Account for ${user.email} deleted successfully.'),
+            backgroundColor: Colors.green.shade700,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting user: $e'),
+            backgroundColor: Colors.red.shade700,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // Delete Confirmation Dialog
+  void _confirmDeleteUser(Customer user) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
+      builder: (dialogContext) => AlertDialog(
+        title: const Row(
           children: [
-            const Icon(Icons.receipt_long, color: Colors.deepOrange),
-            const SizedBox(width: 8),
-            Text('Order #${order.orderNumber}'),
+            Icon(Icons.warning_amber_rounded, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Confirm Deletion'),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Customer:',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
-            ),
-            Text(order.email, style: const TextStyle(fontSize: 15)),
-            const SizedBox(height: 12),
-            Text(
-              'Date Placed:',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
-            ),
-            Text(
-              '${order.orderDate.month}.${order.orderDate.day.toString().padLeft(2, '0')}.${order.orderDate.year.toString().padLeft(2, '0')} ${order.orderDate.hour}:${order.orderDate.minute.toString().padLeft(2, '0')}',
-              style: const TextStyle(fontSize: 15),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Total Amount:',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
-            ),
-            Text(
-              '\$${order.totalPrice.toStringAsFixed(2)}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.green,
-              ),
-            ),
-          ],
+        content: Text(
+          'Are you sure you want to delete the account for ${user.email}?\n\nThis action cannot be undone.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _deleteUser(user);
+            },
+            child: const Text('Delete User'),
           ),
         ],
       ),
@@ -109,22 +152,20 @@ class _LookupOrderPageState extends State<LookupOrderPage> {
 
   @override
   Widget build(BuildContext context) {
-    final filteredOrders = _orders.where((order) {
-      final query = _searchQuery.toLowerCase();
-      return order.orderNumber.toLowerCase().contains(query) ||
-          order.email.toLowerCase().contains(query);
+    final filteredUsers = _users.where((user) {
+      return user.email.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Lookup Orders'),
+        title: const Text('Delete User Accounts'),
         backgroundColor: Colors.deepOrange,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh Orders',
-            onPressed: _fetchOrders,
+            tooltip: 'Refresh User List',
+            onPressed: _fetchRegisteredUsers,
           ),
         ],
       ),
@@ -134,12 +175,12 @@ class _LookupOrderPageState extends State<LookupOrderPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Order Lookup',
+              'Registered User Accounts',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
             Text(
-              'Search orders by order number or customer email',
+              'Search and manage customer accounts in your database',
               style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
             ),
             const SizedBox(height: AppSpacing.medium),
@@ -148,7 +189,7 @@ class _LookupOrderPageState extends State<LookupOrderPage> {
             TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search order # or email...',
+                hintText: 'Search by user email...',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
@@ -172,34 +213,34 @@ class _LookupOrderPageState extends State<LookupOrderPage> {
             ),
             const SizedBox(height: AppSpacing.medium),
 
-            // Orders List View
+            // User List View
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : filteredOrders.isEmpty
+                  : filteredUsers.isEmpty
                       ? Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                Icons.receipt_long_outlined,
+                                Icons.people_outline_rounded,
                                 size: 64,
                                 color: Colors.grey.shade400,
                               ),
                               const SizedBox(height: 12),
                               Text(
                                 _searchQuery.isEmpty
-                                    ? 'No orders found in database'
-                                    : 'No orders matching "$_searchQuery"',
+                                    ? 'No registered users found'
+                                    : 'No users matching "$_searchQuery"',
                                 style: TextStyle(color: Colors.grey.shade600),
                               ),
                             ],
                           ),
                         )
                       : ListView.builder(
-                          itemCount: filteredOrders.length,
+                          itemCount: filteredUsers.length,
                           itemBuilder: (context, index) {
-                            final order = filteredOrders[index];
+                            final user = filteredUsers[index];
 
                             return Card(
                               margin: const EdgeInsets.only(bottom: 12),
@@ -215,42 +256,29 @@ class _LookupOrderPageState extends State<LookupOrderPage> {
                                 leading: CircleAvatar(
                                   backgroundColor: Colors.deepOrange.shade100,
                                   child: const Icon(
-                                    Icons.receipt,
+                                    Icons.person,
                                     color: Colors.deepOrange,
                                   ),
                                 ),
                                 title: Text(
-                                  'Order #${order.orderNumber}',
+                                  user.email,
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 15,
                                   ),
                                 ),
-                                subtitle: Text(
-                                  '${order.email}\n${order.orderDate.toString().split(' ')[0]}',
-                                  style: const TextStyle(fontSize: 12),
+                                subtitle: const Text(
+                                  'Role: Registered Customer',
+                                  style: TextStyle(fontSize: 12),
                                 ),
-                                isThreeLine: true,
-                                trailing: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      '\$${order.totalPrice.toStringAsFixed(2)}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15,
-                                        color: Colors.green,
-                                      ),
-                                    ),
-                                    const Icon(
-                                      Icons.chevron_right,
-                                      size: 18,
-                                      color: Colors.grey,
-                                    ),
-                                  ],
+                                trailing: IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.red,
+                                  ),
+                                  tooltip: 'Delete User',
+                                  onPressed: () => _confirmDeleteUser(user),
                                 ),
-                                onTap: () => _showOrderDetails(order),
                               ),
                             );
                           },

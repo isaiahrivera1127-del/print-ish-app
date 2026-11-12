@@ -4,10 +4,10 @@ import '../constants/colors.dart';
 import '../constants/app_spacing.dart';
 import '../models/printer.dart';
 import '../services/printer_service.dart';
-import 'printer_details.dart';
+import 'customer_screens/printer_details.dart';
 import 'login_page.dart';
 import '../models/cart.dart';
-import 'shopping_cart.dart';
+import 'customer_screens/shopping_cart.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
