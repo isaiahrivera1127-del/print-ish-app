@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -22,6 +23,12 @@ class _LoginPageState extends State<LoginPage> {
   bool _obscurePassword = true;
   bool _isSignUpMode = false;
   bool _isAdminMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isLoading = false;
+  }
 
   @override
   void dispose() {
@@ -50,6 +57,9 @@ class _LoginPageState extends State<LoginPage> {
     // Portal checks ONLY run when submitting a new login form
     if (isSubmittingLogin) {
       if (_isAdminMode && !isRealAdmin) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
         _showSnackBar(
           'Access Denied: Your account does not have admin privileges.',
           isError: true,
@@ -59,6 +69,9 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       if (!_isAdminMode && isRealAdmin) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
         _showSnackBar(
           'Admin accounts must sign in using the Admin Portal.',
           isError: true,
@@ -109,8 +122,12 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _isLoading = true);
     try {
       await Supabase.instance.client.auth.signOut();
-      if (kIsWeb) {
-        await GoogleSignIn.instance.signOut();
+      try {
+        if (kIsWeb) {
+          await GoogleSignIn.instance.signOut();
+        }
+      } catch (_) {
+        // Ignore Google Sign-In signout errors for email/password users
       }
       _showSnackBar('Logged out successfully.');
       _navigateToDashboard();
@@ -127,6 +144,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _submitEmailAuth() async {
     if (!_formKey.currentState!.validate()) return;
 
+    FocusScope.of(context).unfocus();
     setState(() => _isLoading = true);
 
     try {
@@ -136,10 +154,12 @@ class _LoginPageState extends State<LoginPage> {
       // Admin accounts cannot be self-signed up from the app
       if (_isSignUpMode && !_isAdminMode) {
         // Customer Sign Up
-        final response = await Supabase.instance.client.auth.signUp(
-          email: email,
-          password: password,
-        );
+        final response = await Supabase.instance.client.auth
+            .signUp(
+              email: email,
+              password: password,
+            )
+            .timeout(const Duration(seconds: 8));
 
         if (mounted && response.user != null) {
           _showSnackBar('Account created successfully!');
@@ -147,10 +167,12 @@ class _LoginPageState extends State<LoginPage> {
         }
       } else {
         // Sign In (Enforced for Admin Portal and Customer Sign In)
-        await Supabase.instance.client.auth.signInWithPassword(
-          email: email,
-          password: password,
-        );
+        await Supabase.instance.client.auth
+            .signInWithPassword(
+              email: email,
+              password: password,
+            )
+            .timeout(const Duration(seconds: 8));
 
         final user = Supabase.instance.client.auth.currentUser;
         if (user != null) {
@@ -160,9 +182,13 @@ class _LoginPageState extends State<LoginPage> {
                 .from('profiles')
                 .select()
                 .eq('email', user.email!)
-                .maybeSingle();
+                .maybeSingle()
+                .timeout(const Duration(seconds: 3));
 
             if (profile == null && user.userMetadata?['role'] != 'admin') {
+              if (mounted) {
+                setState(() => _isLoading = false);
+              }
               await Supabase.instance.client.auth.signOut();
               _showSnackBar(
                 'This account has been deleted by an administrator.',
@@ -171,7 +197,7 @@ class _LoginPageState extends State<LoginPage> {
               return;
             }
           } catch (_) {
-            // Ignore if profiles table structure varies
+            // Ignore if profiles table structure varies or times out
           }
         }
 
@@ -186,6 +212,11 @@ class _LoginPageState extends State<LoginPage> {
           }
         }
       }
+    } on TimeoutException {
+      _showSnackBar(
+        'Request timed out. Please check your network connection.',
+        isError: true,
+      );
     } on AuthException catch (e) {
       _showSnackBar(e.message, isError: true);
     } catch (e) {
@@ -463,14 +494,18 @@ class _LoginPageState extends State<LoginPage> {
               ),
               backgroundColor:
                   _isAdminMode ? Colors.deepOrange : theme.colorScheme.primary,
+              disabledBackgroundColor:
+                  (_isAdminMode ? Colors.deepOrange : theme.colorScheme.primary)
+                      .withValues(alpha: 0.6),
               foregroundColor: Colors.white,
+              disabledForegroundColor: Colors.white,
             ),
             child: _isLoading
                 ? const SizedBox(
                     height: 20,
                     width: 20,
                     child: CircularProgressIndicator(
-                      strokeWidth: 2,
+                      strokeWidth: 2.5,
                       color: Colors.white,
                     ),
                   )
@@ -547,8 +582,8 @@ class _LoginPageState extends State<LoginPage> {
                       _isSignUpMode = !_isSignUpMode;
                     });
                   },
-                  child: Text(
-                    _isSignUpMode ? 'Sign In' : 'Sign Up',
+                  child: const Text(
+                    'Sign Up',
                     style: TextStyle(
                       color: Colors.blue,
                       fontWeight: FontWeight.bold,
@@ -568,7 +603,8 @@ class _LoginPageState extends State<LoginPage> {
             onPressed: () {
               setState(() {
                 _isAdminMode = !_isAdminMode;
-                _isSignUpMode = false; // Always reset to Sign In mode for Admin Portal
+                _isSignUpMode = false;
+                _isLoading = false;
               });
             },
             icon: const Icon(Icons.admin_panel_settings_outlined, size: 20),
