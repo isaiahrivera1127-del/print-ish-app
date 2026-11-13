@@ -153,7 +153,12 @@ class _DeleteUserPageState extends State<DeleteUserPage> {
   @override
   Widget build(BuildContext context) {
     final filteredUsers = _users.where((user) {
-      return user.email.toLowerCase().contains(_searchQuery.toLowerCase());
+      final isAdminAccount = user.isAdmin ||
+          user.role == 'admin' ||
+          user.email.toLowerCase().startsWith('admin');
+
+      return !isAdminAccount &&
+          user.email.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
 
     return Scaffold(
