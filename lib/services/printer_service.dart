@@ -44,5 +44,20 @@ class PrinterService {
     }
   }
 
+  Future<void> updatePrinter(
+      int printerID,
+      Map<String, dynamic> updates,
+      ) async {
+    final updatedRows = await supabase
+        .from('printers')
+        .update(updates)
+        .eq('id', printerID)
+        .select('id');
+
+    if (updatedRows.isEmpty) {
+      throw Exception('No printer was updated.');
+    }
+  }
+
   }
 
