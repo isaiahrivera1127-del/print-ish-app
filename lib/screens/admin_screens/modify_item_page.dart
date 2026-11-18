@@ -5,6 +5,7 @@ import '../../constants/app_spacing.dart';
 import '../../models/printer.dart';
 import '../../services/printer_service.dart';
 import 'add_printer_page.dart';
+import 'a_printer_details.dart';
 
 class ModifyItemPage extends StatefulWidget {
   const ModifyItemPage({super.key});
@@ -166,6 +167,16 @@ class _ModifyItemPageState extends State<ModifyItemPage> {
 
                 return Card(
                   child: ListTile(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AdminPrinterDetailsPage(
+                            printer: printer,
+                          ),
+                        ),
+                      );
+                    },
                     leading: const Icon(Icons.print),
                     title: Text('${printer.brand} ${printer.model}'),
                     subtitle: Text(
