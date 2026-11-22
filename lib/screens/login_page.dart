@@ -43,7 +43,7 @@ class _LoginPageState extends State<LoginPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red.shade700 : null,
+        backgroundColor: isError ? AppColors.error : null,
         duration: const Duration(seconds: 2),
       ),
     );
@@ -318,14 +318,14 @@ class _LoginPageState extends State<LoginPage> {
               ? Icons.admin_panel_settings_rounded
               : Icons.account_circle_rounded,
           size: 96,
-          color: isRealAdmin ? Colors.deepOrange : theme.colorScheme.primary,
+          color: isRealAdmin ? AppColors.error : theme.colorScheme.primary,
         ),
         const SizedBox(height: 16),
         Text(
           isRealAdmin ? 'Signed In As Admin' : 'Signed In As',
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
-            color: Colors.grey.shade600,
+            color: AppColors.textBlack,
           ),
         ),
         const SizedBox(height: 4),
@@ -345,8 +345,8 @@ class _LoginPageState extends State<LoginPage> {
               borderRadius: BorderRadius.circular(12),
             ),
             backgroundColor:
-                isRealAdmin ? Colors.deepOrange : theme.colorScheme.primary,
-            foregroundColor: Colors.white,
+                isRealAdmin ? AppColors.admin : theme.colorScheme.primary,
+            foregroundColor: AppColors.textBlack,
           ),
           icon: Icon(isRealAdmin ? Icons.dashboard_rounded : Icons.storefront),
           label: Text(
@@ -362,8 +362,8 @@ class _LoginPageState extends State<LoginPage> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            side: const BorderSide(color: Colors.red),
-            foregroundColor: Colors.red,
+            side: const BorderSide(color: AppColors.error),
+            foregroundColor: AppColors.error,
           ),
           icon: const Icon(Icons.logout),
           label: const Text(
@@ -493,12 +493,12 @@ class _LoginPageState extends State<LoginPage> {
                 borderRadius: BorderRadius.circular(12),
               ),
               backgroundColor:
-                  _isAdminMode ? Colors.deepOrange : theme.colorScheme.primary,
+                  _isAdminMode ? AppColors.error : theme.colorScheme.primary,
               disabledBackgroundColor:
-                  (_isAdminMode ? Colors.deepOrange : theme.colorScheme.primary)
+                  (_isAdminMode ? AppColors.error : theme.colorScheme.primary)
                       .withValues(alpha: 0.6),
-              foregroundColor: Colors.white,
-              disabledForegroundColor: Colors.white,
+              foregroundColor: AppColors.textWhite,
+              disabledForegroundColor: AppColors.textBlack,
             ),
             child: _isLoading
                 ? const SizedBox(
@@ -506,7 +506,7 @@ class _LoginPageState extends State<LoginPage> {
                     width: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
-                      color: Colors.white,
+                      color: AppColors.textBlack,
                     ),
                   )
                 : Text(
@@ -525,15 +525,15 @@ class _LoginPageState extends State<LoginPage> {
             // "OR" Divider
             Row(
               children: [
-                Expanded(child: Divider(color: Colors.grey.shade300)),
+                Expanded(child: Divider(color: AppColors.textBlack)),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Text(
                     'OR',
-                    style: TextStyle(color: Colors.grey.shade500),
+                    style: TextStyle(color: AppColors.textBlack),
                   ),
                 ),
-                Expanded(child: Divider(color: Colors.grey.shade300)),
+                Expanded(child: Divider(color: AppColors.textBlack)),
               ],
             ),
             const SizedBox(height: 24),
@@ -546,7 +546,7 @@ class _LoginPageState extends State<LoginPage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                side: BorderSide(color: Colors.grey.shade300),
+                side: BorderSide(color: AppColors.textBlack),
               ),
               icon: Image.asset(
                 'lib/assets/images/google_logo.png',
@@ -560,7 +560,7 @@ class _LoginPageState extends State<LoginPage> {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade800,
+                  color: AppColors.textBlack,
                 ),
               ),
             ),
@@ -574,7 +574,7 @@ class _LoginPageState extends State<LoginPage> {
                   _isSignUpMode
                       ? 'Already have an account? '
                       : "Don't have an account? ",
-                  style: TextStyle(color: Colors.grey.shade700),
+                  style: TextStyle(color: AppColors.textBlack),
                 ),
                 GestureDetector(
                   onTap: () {
@@ -585,7 +585,7 @@ class _LoginPageState extends State<LoginPage> {
                   child: const Text(
                     'Sign Up',
                     style: TextStyle(
-                      color: Colors.blue,
+                      color: AppColors.primary2,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

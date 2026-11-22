@@ -7,6 +7,9 @@ class AppColors {
   // Primary
   static const Color primary = Color(0xFFA589D1);
 
+  // Primary2
+  static const Color primary2 = Color(0xFF8963C6);
+
   // Secondary
   static const Color secondary = Color(0xFF000000);
 
@@ -15,6 +18,9 @@ class AppColors {
 
   // Quaternary
   static const Color quaternary = Color(0xFFABA9C3);
+
+  //error color
+  static const Color error = Color(0xFFF44336);
 
   // 1st Text Color
   static const Color textWhite = Colors.white;
