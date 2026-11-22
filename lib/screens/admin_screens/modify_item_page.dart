@@ -167,8 +167,8 @@ class _ModifyItemPageState extends State<ModifyItemPage> {
 
                 return Card(
                   child: ListTile(
-                    onTap: () {
-                      Navigator.push(
+                    onTap: () async {
+                      await Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => AdminPrinterDetailsPage(
@@ -176,6 +176,12 @@ class _ModifyItemPageState extends State<ModifyItemPage> {
                           ),
                         ),
                       );
+
+                      if (!mounted) return;
+
+                      setState(() {
+                        printersFuture = PrinterService().getPrinters();
+                      });
                     },
                     leading: const Icon(Icons.print),
                     title: Text('${printer.brand} ${printer.model}'),
