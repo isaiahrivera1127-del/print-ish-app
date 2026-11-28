@@ -6,9 +6,13 @@
 
 ## App Screenshots
 
-| Customer Storefront & Guest Browsing | Dual Authentication & Admin Portal |
+| Customer Storefront & Guest Browsing | Authentication & Google OAuth |
 | :---: | :---: |
-| ![Print-ish Storefront](lib/assets/images/printer-icon.png) | ![Admin Portal](lib/assets/images/google_logo.png) |
+| ![Storefront Dashboard](lib/assets/images/Screenshot_dashboard.png) | ![Sign In & Auth](lib/assets/images/Screenshot_login.png) |
+
+| Shopping Cart & Checkout | Admin Control Panel |
+| :---: | :---: |
+| ![Shopping Cart](lib/assets/images/Screenshot_cart.png) | ![Admin Dashboard](lib/assets/images/Screenshot_admin.png) |
 
 ---
 
