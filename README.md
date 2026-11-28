@@ -1,6 +1,6 @@
 # Print-ish Mobile & Web Application
 
-**Print-ish** is a modern, cross-platform e-commerce Flutter application designed for university students, faculty, and administrators to browse, customize, and order 3D printing equipment, materials, and custom printing services. Built with a responsive Flutter Material 3 UI and powered by Supabase for cloud database, authentication, and Row-Level Security (RLS), Print-ish features guest browsing with lazy authentication, dual customer/admin login portals with Google OAuth v7, interactive catalog search and multi-filtering (by brand, type, and price range), shopping cart and checkout processing with auto-filled user email, and a comprehensive Administrator Control Panel for inventory management, customer account deletion, and order history lookups.
+**Print-ish** is a modern, cross-platform e-commerce Flutter application designed for customers, and administrators to browse, customize, and order printers. Built with a responsive Flutter Material 3 UI and powered by Supabase for a cloud database storing all customer data, authentication, and Row-Level Security (RLS), Print-ish features guest browsing with lazy authentication, dual customer/admin login portals with Google Auth, interactive catalog search and multi-filtering (by brand, type, and price range), shopping cart and checkout processing with auto-filled user email, and a comprehensive Administrator Control Panel for inventory management, customer account deletion, and order history lookups.
 
 ---
 
@@ -68,6 +68,6 @@
 * **Cascade Account Deleting:** Deleting a customer row from `public.profiles` requires the PostgreSQL `handle_deleted_profile` trigger in Supabase to automatically purge the corresponding row in `auth.users`.
 
 ### Future Work & Planned Enhancements
-* **Interactive Printer Recommendation Quiz:** Integrate a 3-step recommendation questionnaire ("Find My Printer") to help novice buyers select the right printer model (deferred from MVP in Change Request CR-01).
+* **Interactive Printer Recommendation Quiz:** Integrate a 3-step recommendation questionnaire ("Find My Printer") to help novice buyers select the right printer model
 * **Payment Gateway Integration:** Integrate live payment processing via Stripe, Apple Pay, and Google Pay.
-* **Real-time Order Status Push Notifications:** Implement push notifications to alert customers as 3D printing orders progress from processing to printing and delivery.
+* **Real-time Order Status Push Notifications:** Implement push notifications via email to alert customers as orders progress from processing to printing and delivery.
