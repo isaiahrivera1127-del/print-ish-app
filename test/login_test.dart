@@ -1,8 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 
-// --- Input Validation Functions matching Acceptance Criteria ---
-
-/// Password Validator: Must be at least 6 characters long
 String? validatePassword(String? value) {
   if (value == null || value.trim().isEmpty) {
     return 'Please enter your password';
@@ -13,7 +10,6 @@ String? validatePassword(String? value) {
   return null;
 }
 
-/// Email Validator: Must be a valid email address
 String? validateEmail(String? value) {
   if (value == null || value.trim().isEmpty) {
     return 'Please enter your email';
@@ -25,7 +21,6 @@ String? validateEmail(String? value) {
   return null;
 }
 
-/// ZIP Code Validator: Must be exactly 5 digits
 String? validateZipCode(String? value) {
   if (value == null || value.isEmpty) {
     return 'ZIP Code is required';
@@ -37,9 +32,8 @@ String? validateZipCode(String? value) {
 }
 
 void main() {
-  group('Acceptance Criteria & Boundary Value Tests', () {
-    
-    // --- 1. Password Boundary Tests (Min 6 Characters) ---
+  group('Automated Tests for login', () {
+
     group('Password Length Boundary Tests', () {
       test('Empty string (Below min boundary) -> Returns error', () {
         final result = validatePassword('');
@@ -62,7 +56,6 @@ void main() {
       });
     });
 
-    // --- 2. Email Format Boundary Tests ---
     group('Email Format Acceptance Tests', () {
       test('Empty email -> Returns error', () {
         final result = validateEmail('');
@@ -80,7 +73,7 @@ void main() {
       });
     });
 
-    // --- 3. ZIP Code Boundary Tests (Exact 5 Digits) ---
+
     group('ZIP Code 5-Digit Boundary Tests', () {
       test('4 digits (Below boundary length of 5) -> Returns error', () {
         final result = validateZipCode('1234');

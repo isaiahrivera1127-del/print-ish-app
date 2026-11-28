@@ -90,7 +90,7 @@ class _LoginPageState extends State<LoginPage> {
       return true;
     }
 
-    // 1. If user is logged out (user == null) -> Reset to public Dashboard
+    // If user is logged out (user == null) -> Reset to public Dashboard
     if (user == null) {
       Navigator.pushAndRemoveUntil(
         context,
